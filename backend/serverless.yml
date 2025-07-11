@@ -1,0 +1,316 @@
+service: aditi-avenues-backend
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  environment:
+    STAGE: ${self:provider.stage}
+    DB_HOST: ${cf:aditi-avenues-infrastructure-${self:provider.stage}.DatabaseEndpoint}
+    DB_USER: admin
+    DB_PASSWORD: ${ssm:/aditi-avenues/${self:provider.stage}/db-password}
+    DB_NAME: aditi_avenues
+    USER_POOL_ID: ${cf:aditi-avenues-infrastructure-${self:provider.stage}.UserPoolId}
+    USER_POOL_CLIENT_ID: ${cf:aditi-avenues-infrastructure-${self:provider.stage}.UserPoolClientId}
+    DOCUMENTS_BUCKET: ${cf:aditi-avenues-infrastructure-${self:provider.stage}.DocumentsBucketName}
+    GALLERY_BUCKET: ${cf:aditi-avenues-infrastructure-${self:provider.stage}.GalleryBucketName}
+    CLOUDFRONT_DOMAIN: ${cf:aditi-avenues-infrastructure-${self:provider.stage}.CloudFrontDomainName}
+    FROM_EMAIL: noreply@aditiavenues.com
+    ADMIN_EMAIL: admin@aditiavenues.com
+  vpc:
+    securityGroupIds:
+      - ${cf:aditi-avenues-infrastructure-${self:provider.stage}.LambdaSecurityGroupId}
+    subnetIds:
+      - ${cf:aditi-avenues-infrastructure-${self:provider.stage}.PrivateSubnet1Id}
+      - ${cf:aditi-avenues-infrastructure-${self:provider.stage}.PrivateSubnet2Id}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+            - s3:ListBucket
+          Resource:
+            - arn:aws:s3:::${self:provider.environment.DOCUMENTS_BUCKET}
+            - arn:aws:s3:::${self:provider.environment.DOCUMENTS_BUCKET}/*
+            - arn:aws:s3:::${self:provider.environment.GALLERY_BUCKET}
+            - arn:aws:s3:::${self:provider.environment.GALLERY_BUCKET}/*
+        - Effect: Allow
+          Action:
+            - ses:SendEmail
+            - ses:SendRawEmail
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminCreateUser
+            - cognito-idp:AdminUpdateUserAttributes
+            - cognito-idp:AdminDisableUser
+            - cognito-idp:AdminGetUser
+          Resource: 
+            - arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:provider.environment.USER_POOL_ID}
+
+functions:
+  # Projects API
+  projects:
+    handler: lambda/projects/handler.handler
+    events:
+      - http:
+          path: /api/projects
+          method: get
+          cors: true
+      - http:
+          path: /api/projects
+          method: post
+          cors: true
+      - http:
+          path: /api/projects/{id}
+          method: get
+          cors: true
+      - http:
+          path: /api/projects/{id}
+          method: put
+          cors: true
+      - http:
+          path: /api/projects/{id}
+          method: delete
+          cors: true
+      - http:
+          path: /api/projects
+          method: options
+          cors: true
+      - http:
+          path: /api/projects/{id}
+          method: options
+          cors: true
+
+  # Amenities API
+  amenities:
+    handler: lambda/amenities/handler.handler
+    events:
+      - http:
+          path: /api/amenities
+          method: get
+          cors: true
+      - http:
+          path: /api/amenities
+          method: post
+          cors: true
+      - http:
+          path: /api/amenities/{id}
+          method: get
+          cors: true
+      - http:
+          path: /api/amenities/{id}
+          method: put
+          cors: true
+      - http:
+          path: /api/amenities/{id}
+          method: delete
+          cors: true
+      - http:
+          path: /api/amenities
+          method: options
+          cors: true
+      - http:
+          path: /api/amenities/{id}
+          method: options
+          cors: true
+
+  # Gallery API
+  gallery:
+    handler: lambda/gallery/handler.handler
+    events:
+      - http:
+          path: /api/gallery
+          method: get
+          cors: true
+      - http:
+          path: /api/gallery
+          method: post
+          cors: true
+      - http:
+          path: /api/gallery/{id}
+          method: get
+          cors: true
+      - http:
+          path: /api/gallery/{id}
+          method: put
+          cors: true
+      - http:
+          path: /api/gallery/{id}
+          method: delete
+          cors: true
+      - http:
+          path: /api/gallery
+          method: options
+          cors: true
+      - http:
+          path: /api/gallery/{id}
+          method: options
+          cors: true
+
+  # Documents API
+  documents:
+    handler: lambda/documents/handler.handler
+    events:
+      - http:
+          path: /api/documents
+          method: get
+          cors: true
+      - http:
+          path: /api/documents
+          method: post
+          cors: true
+      - http:
+          path: /api/documents/{id}
+          method: get
+          cors: true
+      - http:
+          path: /api/documents/{id}
+          method: put
+          cors: true
+      - http:
+          path: /api/documents/{id}
+          method: delete
+          cors: true
+      - http:
+          path: /api/documents
+          method: options
+          cors: true
+      - http:
+          path: /api/documents/{id}
+          method: options
+          cors: true
+
+  # Contact/Enquiries API
+  contact:
+    handler: lambda/contact/handler.handler
+    events:
+      - http:
+          path: /api/contact
+          method: get
+          cors: true
+      - http:
+          path: /api/contact
+          method: post
+          cors: true
+      - http:
+          path: /api/contact/{id}
+          method: get
+          cors: true
+      - http:
+          path: /api/contact/{id}
+          method: put
+          cors: true
+      - http:
+          path: /api/contact/{id}
+          method: delete
+          cors: true
+      - http:
+          path: /api/contact
+          method: options
+          cors: true
+      - http:
+          path: /api/contact/{id}
+          method: options
+          cors: true
+
+  # File Upload API
+  upload:
+    handler: lambda/upload/handler.handler
+    events:
+      - http:
+          path: /api/upload
+          method: post
+          cors: true
+      - http:
+          path: /api/upload
+          method: delete
+          cors: true
+      - http:
+          path: /api/upload
+          method: options
+          cors: true
+
+  # Admin Users API
+  adminUsers:
+    handler: lambda/admin-users/handler.handler
+    events:
+      - http:
+          path: /api/admin/users
+          method: get
+          cors: true
+      - http:
+          path: /api/admin/users
+          method: post
+          cors: true
+      - http:
+          path: /api/admin/users/{id}
+          method: get
+          cors: true
+      - http:
+          path: /api/admin/users/{id}
+          method: put
+          cors: true
+      - http:
+          path: /api/admin/users/{id}
+          method: delete
+          cors: true
+      - http:
+          path: /api/admin/users
+          method: options
+          cors: true
+      - http:
+          path: /api/admin/users/{id}
+          method: options
+          cors: true
+
+  # Analytics API
+  analytics:
+    handler: lambda/analytics/handler.handler
+    events:
+      - http:
+          path: /api/analytics/dashboard
+          method: get
+          cors: true
+      - http:
+          path: /api/analytics/enquiries
+          method: get
+          cors: true
+      - http:
+          path: /api/analytics/projects
+          method: get
+          cors: true
+      - http:
+          path: /api/analytics
+          method: options
+          cors: true
+
+  # Settings API
+  settings:
+    handler: lambda/settings/handler.handler
+    events:
+      - http:
+          path: /api/settings
+          method: get
+          cors: true
+      - http:
+          path: /api/settings
+          method: put
+          cors: true
+      - http:
+          path: /api/settings
+          method: options
+          cors: true
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3001
