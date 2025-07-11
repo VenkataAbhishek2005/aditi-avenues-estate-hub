@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X, Phone, Mail, MapPin } from 'lucide-react';
+import { Menu, X, Phone, Mail, MapPin, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -71,9 +71,17 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            <Button variant="cta" className="ml-4">
-              Get In Touch
-            </Button>
+            <div className="flex items-center gap-3 ml-4">
+              <Button variant="outline" size="sm">
+                Get In Touch
+              </Button>
+              <Link to="/admin/login">
+                <Button className="btn-gold shadow-gold hover:shadow-lg transition-all duration-300">
+                  <Lock className="h-4 w-4 mr-2" />
+                  Admin Login
+                </Button>
+              </Link>
+            </div>
           </nav>
 
           {/* Mobile menu button */}
@@ -107,9 +115,17 @@ const Header = () => {
                   {item.name}
                 </Link>
               ))}
-              <Button variant="cta" className="mt-4 mx-4">
-                Get In Touch
-              </Button>
+              <div className="flex flex-col gap-3 mt-4 mx-4">
+                <Button variant="outline" size="sm">
+                  Get In Touch
+                </Button>
+                <Link to="/admin/login">
+                  <Button className="btn-gold shadow-gold hover:shadow-lg transition-all duration-300 w-full">
+                    <Lock className="h-4 w-4 mr-2" />
+                    Admin Login
+                  </Button>
+                </Link>
+              </div>
             </nav>
           </div>
         )}
