@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { 
   BarChart3, 
   Users, 
@@ -10,7 +11,8 @@ import {
   PlusCircle,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,12 +20,38 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Check authentication on mount
+  useEffect(() => {
+    const isAuthenticated = sessionStorage.getItem('adminAuth');
+    if (!isAuthenticated) {
+      navigate('/admin/login');
+    }
+  }, [navigate]);
+
+  // Fetch dashboard data
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ['/api/admin/dashboard'],
+    queryFn: () => apiRequest('/api/admin/dashboard'),
+  });
+
+  const { data: projectsData } = useQuery({
+    queryKey: ['/api/admin/projects'],
+    queryFn: () => apiRequest('/api/admin/projects'),
+  });
+
+  const { data: inquiriesData } = useQuery({
+    queryKey: ['/api/admin/inquiries'],
+    queryFn: () => apiRequest('/api/admin/inquiries'),
+  });
+
   const handleLogout = () => {
+    sessionStorage.removeItem('adminAuth');
     toast({
       title: "Logged Out",
       description: "You have been securely logged out",
@@ -34,45 +62,60 @@ const AdminDashboard = () => {
   const stats = [
     {
       title: "Total Projects",
-      value: "4",
+      value: projectsData?.length?.toString() || "0",
       change: "+1 this month",
       icon: Building2,
       color: "text-blue-600"
     },
     {
       title: "Inquiries",
-      value: "23",
+      value: inquiriesData?.length?.toString() || "0",
       change: "+5 this week",
       icon: MessageSquare,
       color: "text-green-600"
     },
     {
       title: "Gallery Images",
-      value: "48",
+      value: dashboardData?.galleryCount?.toString() || "0",
       change: "+12 recently",
       icon: Eye,
       color: "text-purple-600"
     },
     {
       title: "Active Users",
-      value: "156",
+      value: dashboardData?.userCount?.toString() || "0",
       change: "+8% growth",
       icon: Users,
       color: "text-red-600"
     }
   ];
 
-  const recentProjects = [
+  const recentProjects = (projectsData || []).slice(0, 5).map((project: any) => ({
+    id: project.id,
+    name: project.name,
+    status: project.status === 'ready_to_move' ? 'Ready to Move' : 
+            project.status === 'ongoing' ? 'Ongoing' : 
+            project.status === 'upcoming' ? 'Upcoming' : project.status,
+    location: project.location,
+    units: `${project.configurations?.length || 0} configurations`,
+    badge: project.isFeatured ? "Featured" : "Standard"
+  }));
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const sampleProjects = [
     {
       id: 1,
-      name: "Aditi Heights",
-      status: "Ongoing",
-      location: "Kompally",
-      units: "120 units",
-      badge: "In Progress"
-    },
-    {
-      id: 2,
       name: "Aditi Paradise",
       status: "Ready to Move",
       location: "Miyapur", 

@@ -29,27 +29,35 @@ const AdminLogin = () => {
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual authentication with secure backend
-      // For now, this is a placeholder
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (formData.username === 'admin' && formData.password === 'admin123') {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Store authentication status (in a real app, this would be a JWT token)
+        sessionStorage.setItem('adminAuth', 'true');
         toast({
           title: "Login Successful",
           description: "Welcome to the admin dashboard",
         });
         navigate('/admin/dashboard');
       } else {
+        const errorData = await response.json();
         toast({
           title: "Login Failed",
-          description: "Invalid username or password",
+          description: errorData.message || "Invalid username or password",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "An error occurred during login",
+        description: "An error occurred during login. Please try again.",
         variant: "destructive",
       });
     } finally {

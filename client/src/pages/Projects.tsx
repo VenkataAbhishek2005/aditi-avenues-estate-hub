@@ -1,84 +1,93 @@
 import { useState } from 'react';
-import { MapPin, Calendar, Home, Download, ArrowRight, Filter } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { MapPin, Calendar, Home, Download, ArrowRight, Filter, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { apiRequest } from '@/lib/queryClient';
 import Layout from '@/components/Layout';
 import heroBuilding from '@/assets/hero-building.jpg';
 import amenitiesHero from '@/assets/amenities-hero.jpg';
 import interiorSample from '@/assets/interior-sample.jpg';
 
+interface Project {
+  id: number;
+  name: string;
+  location: string;
+  status: string;
+  configurations: string[];
+  areaRange: string;
+  priceRange: string;
+  possessionDate: string;
+  reraId: string;
+  description: string;
+  highlights: string[];
+  amenities: string[];
+  images: string[];
+  isFeatured: boolean;
+  isActive: boolean;
+}
+
 const Projects = () => {
   const [selectedFilter, setSelectedFilter] = useState('All');
+  const [selectedProject, setSelectedProject] = useState<any>(null);
 
-  const projects = [
-    {
-      id: 1,
-      name: 'Aditi Heights',
-      location: 'Kompally, Hyderabad',
-      status: 'Ongoing',
-      configurations: ['2BHK', '3BHK', '4BHK'],
-      area: '1200-2400 sq ft',
-      priceRange: '₹45L - ₹85L',
-      possession: 'Dec 2025',
-      reraId: 'P02400004321',
-      image: heroBuilding,
-      amenities: ['Swimming Pool', 'Gym', 'Clubhouse', 'Security', 'Garden', 'Parking'],
-      description: 'Modern residential complex with premium amenities and strategic location.',
-      highlights: ['RERA Approved', 'Near IT Hub', 'Metro Connectivity', 'Premium Location']
-    },
-    {
-      id: 2,
-      name: 'Aditi Paradise',
-      location: 'Miyapur, Hyderabad',
-      status: 'Ready to Move',
-      configurations: ['1BHK', '2BHK', '3BHK'],
-      area: '850-1800 sq ft',
-      priceRange: '₹35L - ₹65L',
-      possession: 'Immediate',
-      reraId: 'P02400004322',
-      image: amenitiesHero,
-      amenities: ['Garden', 'Parking', 'Power Backup', 'Security', 'Playground'],
-      description: 'Ready to move homes with excellent connectivity and modern amenities.',
-      highlights: ['Ready to Move', 'Metro Station', 'Schools Nearby', 'Hospital Access']
-    },
-    {
-      id: 3,
-      name: 'Aditi Grandeur',
-      location: 'Kondapur, Hyderabad',
-      status: 'Upcoming',
-      configurations: ['2BHK', '3BHK', '4BHK', '5BHK'],
-      area: '1400-3000 sq ft',
-      priceRange: '₹65L - ₹1.2Cr',
-      possession: 'Jun 2026',
-      reraId: 'P02400004323',
-      image: interiorSample,
-      amenities: ['Rooftop Pool', 'Spa', 'Gym', 'Clubhouse', 'Theatre', 'Garden'],
-      description: 'Luxury residential project with world-class amenities and premium location.',
-      highlights: ['Luxury Living', 'Premium Location', 'World-class Amenities', 'High-end Finishes']
-    },
-    {
-      id: 4,
-      name: 'Aditi Serene',
-      location: 'Gachibowli, Hyderabad',
-      status: 'Ongoing',
-      configurations: ['2BHK', '3BHK'],
-      area: '1100-1900 sq ft',
-      priceRange: '₹55L - ₹95L',
-      possession: 'Mar 2026',
-      reraId: 'P02400004324',
-      image: heroBuilding,
-      amenities: ['Swimming Pool', 'Gym', 'Clubhouse', 'Security', 'Garden'],
-      description: 'Peaceful residential community in the heart of IT corridor.',
-      highlights: ['IT Corridor', 'Peaceful Environment', 'Modern Design', 'Investment Opportunity']
-    }
-  ];
+  // Fetch projects from API
+  const { data: projectsData, isLoading, error } = useQuery({
+    queryKey: ['/api/projects'],
+    queryFn: () => apiRequest('/api/projects'),
+  });
+
+  // Map API data to component format and add fallback images
+  const projects = (projectsData || []).map((project: Project) => ({
+    ...project,
+    area: project.areaRange,
+    possession: new Date(project.possessionDate).toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric'
+    }),
+    image: project.images?.[0] === 'hero-building.jpg' ? heroBuilding : 
+           project.images?.[0] === 'amenities-hero.jpg' ? amenitiesHero : 
+           project.images?.[0] === 'interior-sample.jpg' ? interiorSample : heroBuilding,
+    status: project.status === 'ready_to_move' ? 'Ready to Move' : 
+            project.status === 'ongoing' ? 'Ongoing' : 
+            project.status === 'upcoming' ? 'Upcoming' : project.status
+  }));
 
   const filterOptions = ['All', 'Ready to Move', 'Ongoing', 'Upcoming'];
 
   const filteredProjects = selectedFilter === 'All' 
     ? projects 
     : projects.filter(project => project.status === selectedFilter);
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading projects...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Error loading projects. Please try again later.</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -212,9 +221,135 @@ const Projects = () => {
                   </div>
 
                   <div className="flex gap-3">
-                    <Button variant="cta" className="flex-1">
-                      View Details <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="cta" className="flex-1" onClick={() => setSelectedProject(project)}>
+                          View Details <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-2xl font-bold text-primary">
+                            {selectedProject?.name}
+                          </DialogTitle>
+                        </DialogHeader>
+                        {selectedProject && (
+                          <div className="space-y-6">
+                            {/* Project Image */}
+                            <div className="relative h-64 rounded-lg overflow-hidden">
+                              <img 
+                                src={selectedProject.image} 
+                                alt={selectedProject.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute top-4 left-4">
+                                <Badge 
+                                  variant={selectedProject.status === 'Ready to Move' ? 'default' : 'secondary'}
+                                  className={selectedProject.status === 'Ready to Move' ? 'bg-success' : 
+                                           selectedProject.status === 'Ongoing' ? 'bg-warning' : 'bg-primary'}
+                                >
+                                  {selectedProject.status}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            {/* Project Info Grid */}
+                            <div className="grid md:grid-cols-2 gap-6">
+                              <div className="space-y-4">
+                                <div>
+                                  <h3 className="font-semibold text-lg mb-2">Location</h3>
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <MapPin className="h-4 w-4" />
+                                    <span>{selectedProject.location}</span>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h3 className="font-semibold text-lg mb-2">Configurations</h3>
+                                  <div className="flex flex-wrap gap-2">
+                                    {selectedProject.configurations?.map((config: string) => (
+                                      <Badge key={config} variant="outline">
+                                        {config}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h3 className="font-semibold text-lg mb-2">Area Range</h3>
+                                  <p className="text-muted-foreground">{selectedProject.area}</p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div>
+                                  <h3 className="font-semibold text-lg mb-2">Price Range</h3>
+                                  <p className="text-primary font-semibold text-xl">{selectedProject.priceRange}</p>
+                                </div>
+
+                                <div>
+                                  <h3 className="font-semibold text-lg mb-2">Possession</h3>
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>{selectedProject.possession}</span>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h3 className="font-semibold text-lg mb-2">RERA ID</h3>
+                                  <Badge variant="outline" className="bg-background/90">
+                                    {selectedProject.reraId}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                              <h3 className="font-semibold text-lg mb-2">Description</h3>
+                              <p className="text-muted-foreground leading-relaxed">{selectedProject.description}</p>
+                            </div>
+
+                            {/* Key Highlights */}
+                            <div>
+                              <h3 className="font-semibold text-lg mb-3">Key Highlights</h3>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedProject.highlights?.map((highlight: string) => (
+                                  <Badge key={highlight} variant="secondary">
+                                    {highlight}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Amenities */}
+                            <div>
+                              <h3 className="font-semibold text-lg mb-3">Amenities</h3>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {selectedProject.amenities?.map((amenity: string) => (
+                                  <Badge key={amenity} variant="outline" className="justify-center">
+                                    {amenity}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-4 pt-4 border-t">
+                              <Button className="flex-1">
+                                Schedule Site Visit
+                              </Button>
+                              <Button variant="outline" className="flex-1">
+                                Contact Sales Team
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
                     <Button variant="outline" size="sm">
                       <Download className="h-4 w-4" />
                     </Button>
